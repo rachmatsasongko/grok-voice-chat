@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useKeyboardKey } from '@/hooks/useKeyboardKey';
 import { BsFillMicFill, BsFillMicMuteFill } from 'react-icons/bs';
 import { FaPause } from 'react-icons/fa';
-import { getResponse } from '@/lib/convai';
+import { ConvaiClient } from 'convai-web-sdk';
 
 // Declare a global interface to add the webkitSpeechRecognition property to the Window object
 declare global {
@@ -14,27 +14,54 @@ declare global {
   }
 }
 
+const apiKey = process.env.NEXT_PUBLIC_CONVAI_API_KEY;
+if (!apiKey) throw 'Please provide CONVAI_API_KEY to environment.';
+let text = '';
+
 // Export the MicrophoneComponent function component
 export const SpeakButton = () => {
   // State variables to manage recording status, completion, and transcript
   const [isRecording, setIsRecording] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
-  const sendTranscriptHandler = async (text: string) => {
-    // setIsMuted(true);
-    // const data = await fetch('/api/speech', {
-    //   method: 'post',
-    //   body: JSON.stringify({ text })
-    // });
+  const convaiClient = new ConvaiClient({
+    apiKey,
+    characterId: '8565e00c-146e-11ef-91e3-42010a7be00e',
+    enableAudio: false,
+    sessionId: '-1',
+    speaker: '',
+    speakerId: ''
+  });
 
-    // console.log(await data.json());
-    // const audio = new Audio('./audio/transcript.wav');
-    // audio.onended = () => {
-    //   setIsMuted(false);
-    // };
-    // await audio.play();
-    getResponse(text);
+  const fetchApi = (text: string) => {
+    const fetchData = async () => {
+      const speech = await fetch('/api/speech', {
+        method: 'post',
+        body: JSON.stringify({
+          text
+        })
+      });
+      const data = await speech.json();
+      const audio = new Audio(`./audio/${data.fileName}`);
+      audio.play();
+    }
+    fetchData().catch(console.error);
   }
+
+  convaiClient.setResponseCallback((response) => {
+    // live transcript, only available during audio mode.
+    if (response.hasAudioResponse()) {
+      const audioResponse = response?.getAudioResponse();
+      if (audioResponse.array.length === 3) {
+        text += audioResponse.array[2];
+      } else if (audioResponse.array.length === 4) {
+        text += audioResponse.array[2];
+        let fullText = text;
+        text = '';
+        fetchApi(fullText);
+      }
+    }
+  });
 
   useKeyboardKey({
     key: ' ',
@@ -70,7 +97,7 @@ export const SpeakButton = () => {
       // set timeout for 1 second
       currentTimeout = setTimeout(() => {
         console.log('Full transcript', transcript);
-        sendTranscriptHandler(transcript);
+        convaiClient.sendTextChunk(transcript);
         stopRecording();
       }, 1000);
     };
