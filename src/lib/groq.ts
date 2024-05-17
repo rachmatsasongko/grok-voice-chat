@@ -2,7 +2,7 @@
 import Groq from 'groq-sdk';
 
 const apiKey = process.env.GROQ_API_KEY;
-if (!apiKey) throw 'Please provide API KEY to environment.';
+if (!apiKey) throw 'Please provide GROQ_API_KEY to environment.';
 
 const groq = new Groq({
   apiKey

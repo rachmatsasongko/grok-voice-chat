@@ -11,6 +11,7 @@
   "dependencies": {
     "@deepgram/sdk": "^3.3.2",
     "add": "^2.0.6",
+    "convai-web-sdk": "^0.1.1",
     "groq-sdk": "^0.3.3",
     "next": "14.2.3",
     "react": "^18",

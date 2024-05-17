@@ -2,7 +2,7 @@ import { createClient } from '@deepgram/sdk';
 import fs from 'fs';
 
 const apiKey = process.env.DEEPGRAM_API_KEY;
-if (!apiKey) throw 'Please provide API KEY to environment.';
+if (!apiKey) throw 'Please provide DEEPGRAM_API_KEY to environment.';
 
 const deepgram = createClient(apiKey);
 

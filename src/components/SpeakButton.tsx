@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useKeyboardKey } from '@/hooks/useKeyboardKey';
 import { BsFillMicFill, BsFillMicMuteFill } from 'react-icons/bs';
 import { FaPause } from 'react-icons/fa';
+import { getResponse } from '@/lib/convai';
 
 // Declare a global interface to add the webkitSpeechRecognition property to the Window object
 declare global {
@@ -20,18 +21,19 @@ export const SpeakButton = () => {
   const [isMuted, setIsMuted] = useState(false);
 
   const sendTranscriptHandler = async (text: string) => {
-    setIsMuted(true);
-    const data = await fetch('/api/speech', {
-      method: 'post',
-      body: JSON.stringify({ text })
-    });
+    // setIsMuted(true);
+    // const data = await fetch('/api/speech', {
+    //   method: 'post',
+    //   body: JSON.stringify({ text })
+    // });
 
-    console.log(await data.json());
-    const audio = new Audio('./audio/transcript.wav');
-    audio.onended = () => {
-      setIsMuted(false);
-    };
-    await audio.play();
+    // console.log(await data.json());
+    // const audio = new Audio('./audio/transcript.wav');
+    // audio.onended = () => {
+    //   setIsMuted(false);
+    // };
+    // await audio.play();
+    getResponse(text);
   }
 
   useKeyboardKey({
