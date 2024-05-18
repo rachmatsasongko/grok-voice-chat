@@ -1,7 +1,8 @@
 'use client';
 
 // Import necessary modules and components
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { useKeyboardKey } from '@/hooks/useKeyboardKey';
 import { BsFillMicFill, BsFillMicMuteFill } from 'react-icons/bs';
 import { FaPause } from 'react-icons/fa';
@@ -15,24 +16,52 @@ declare global {
 
 // Export the MicrophoneComponent function component
 export const SpeakButton = () => {
+  let userId: string;
+  if(typeof window !== 'undefined'){
+    let id = localStorage.getItem('userId');
+    if (!id) {
+      id = uuidv4();
+      localStorage.setItem('userId', id);
+    }
+    userId = id;
+  }
   // State variables to manage recording status, completion, and transcript
   const [isRecording, setIsRecording] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  // const [userId, setUserId] = useState('');
 
   const sendTranscriptHandler = async (text: string) => {
     setIsMuted(true);
-    const data = await fetch('/api/speech', {
-      method: 'post',
-      body: JSON.stringify({ text })
-    });
-
-    console.log(await data.json());
-    const audio = new Audio('./audio/transcript.wav');
-    audio.onended = () => {
-      setIsMuted(false);
-    };
-    await audio.play();
-  }
+    // send message
+    try {
+      await fetch('/api/speech', {
+        method: 'post',
+        body: JSON.stringify({ userId, text })
+      });
+    } catch (err) {
+      console.log(err);
+      return;
+    }
+    // retrieve response after 1s
+    setTimeout(async () => {
+      try {
+        const answer = await fetch('/api/answer', {
+          method: 'post',
+          body: JSON.stringify({ userId })
+        });
+        console.log(await answer.json());
+      } catch (err) {
+        console.log(err);
+        return;
+      }
+  
+      const audio = new Audio('./audio/transcript.wav');
+      audio.onended = () => {
+        setIsMuted(false);
+      };
+      await audio.play();
+    }, 1000)
+  };
 
   useKeyboardKey({
     key: ' ',
@@ -62,12 +91,12 @@ export const SpeakButton = () => {
       const { transcript } = event.results[event.results.length - 1][0];
 
       // Log the recognition results and update the transcript state
-      console.log(event.results);
+      // console.log(event.results);
       // console.log(transcript);
 
       // set timeout for 1 second
       currentTimeout = setTimeout(() => {
-        console.log('Full transcript', transcript);
+        console.log('Full transcript:', transcript);
         sendTranscriptHandler(transcript);
         stopRecording();
       }, 1000);

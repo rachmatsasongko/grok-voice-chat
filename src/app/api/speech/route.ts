@@ -1,21 +1,28 @@
 import { NextResponse } from 'next/server';
-import { createAudioFileFromText } from '@/lib/deppgram';
-import { generateAnswer } from '@/lib/groq';
 
 
-export async function GET(request: Request) {
-  const payload: { text: string } = await request.json();
-  const answer = await generateAnswer('Tell me a joke');
-  return NextResponse.json({
-    test: "test"
-  })
+type PostMessageResponse = {
+  threadsId: string;
+  runsId: string;
+  messagesId: string;
 }
 
 export async function POST(request: Request) {
-  const payload: { text: string } = await request.json();
-  const answer = await generateAnswer(payload.text);
-  await createAudioFileFromText(answer);
-  return NextResponse.json({
-    text: answer
-  });
+  try {
+    const payload: { userId: string, text: string } = await request.json();
+    // sending message
+    // http://localhost:8000/message/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed/asst_V2Gc1qYaHHiJbm8KwXJd8LCs
+    const postMsg = await fetch(`http://157.245.65.134/message/${payload.userId}/asst_V2Gc1qYaHHiJbm8KwXJd8LCs`, {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: payload.text }),
+      cache: 'no-store'
+    });
+    const postRes: PostMessageResponse = await postMsg.json();
+    return NextResponse.json(postRes);
+  } catch (err) {
+    return NextResponse.error();
+  }
 }
