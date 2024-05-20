@@ -17,7 +17,7 @@ declare global {
 // Export the MicrophoneComponent function component
 export const SpeakButton = () => {
   let userId: string;
-  if(typeof window !== 'undefined'){
+  if (typeof window !== 'undefined') {
     let id = localStorage.getItem('userId');
     if (!id) {
       id = uuidv4();
@@ -29,6 +29,47 @@ export const SpeakButton = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   // const [userId, setUserId] = useState('');
+
+  const getResponseStream = async () => {
+    setIsMuted(true);
+    try {
+      const answer = await fetch('/api/answer', {
+        method: 'post',
+        body: JSON.stringify({ userId })
+      });
+      const reader = answer.body?.getReader();
+      const stream = new ReadableStream({
+        start(controller) {
+          return pump();
+          function pump() {
+            console.log('PUMP');
+            return reader?.read().then(({ done, value }): any => {
+              if (done) {
+                console.log('DONE');
+                controller.close();
+                return;
+              }
+              controller.enqueue(value);
+              return pump();
+            });
+          }
+        }
+      });
+      const responseStream = new Response(stream);
+      const blob = await responseStream.blob();
+      const audioUrl = URL.createObjectURL(blob);
+
+      const audio = new Audio(audioUrl);
+      audio.onended = () => {
+        setIsMuted(false);
+      };
+      audio.play();
+    } catch (err) {
+      console.log(err);
+      setIsMuted(false);
+      return;
+    }
+  }
 
   const sendTranscriptHandler = async (text: string) => {
     setIsMuted(true);
@@ -46,22 +87,13 @@ export const SpeakButton = () => {
     // retrieve response after 1s
     setTimeout(async () => {
       try {
-        const answer = await fetch('/api/answer', {
-          method: 'post',
-          body: JSON.stringify({ userId })
-        });
-        const blob = await answer.blob();
-        const audioUrl = URL.createObjectURL(blob);
-      
-        const audio = new Audio(audioUrl);
-        await audio.play();
-        setIsMuted(false);
+        await getResponseStream();
       } catch (err) {
         console.log(err);
         setIsMuted(false);
         return;
       }
-    }, 1000)
+    }, 500);
   };
 
   useKeyboardKey({
@@ -69,6 +101,7 @@ export const SpeakButton = () => {
     onKeyPressed: () => {
       if (!isRecording && !isMuted) {
         startRecording();
+        // getResponseStream();
       }
     },
   });
