@@ -49,17 +49,15 @@ export const SpeakButton = () => {
           method: 'post',
           body: JSON.stringify({ userId })
         });
-        console.log(await answer.json());
+        const blob = await answer.blob();
+        const audioUrl = URL.createObjectURL(blob);
+      
+        const audio = new Audio(audioUrl);
+        await audio.play();
       } catch (err) {
         console.log(err);
         return;
       }
-  
-      const audio = new Audio('./audio/transcript.wav');
-      audio.onended = () => {
-        setIsMuted(false);
-      };
-      await audio.play();
     }, 1000)
   };
 

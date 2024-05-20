@@ -1,5 +1,4 @@
 import { SpeakButton } from '@/components/SpeakButton';
-import { createAudioFileFromText } from '@/lib/deppgram';
 
 export default function Home() {
   return (

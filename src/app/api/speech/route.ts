@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const payload: { userId: string, text: string } = await request.json();
     // sending message
     // http://localhost:8000/message/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed/asst_V2Gc1qYaHHiJbm8KwXJd8LCs
-    const postMsg = await fetch(`http://157.245.65.134/message/${payload.userId}/asst_V2Gc1qYaHHiJbm8KwXJd8LCs`, {
+    const postMsg = await fetch(`${process.env.API_HOST}/message/${payload.userId}/${process.env.ASSISTANT_ID}`, {
       method: 'post',
       headers: {
         'Content-Type': 'application/json',
