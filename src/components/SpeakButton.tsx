@@ -28,42 +28,58 @@ export const SpeakButton = () => {
   // State variables to manage recording status, completion, and transcript
   const [isRecording, setIsRecording] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
   // const [userId, setUserId] = useState('');
 
   const getResponseStream = async () => {
     setIsMuted(true);
     try {
+      if (!window.MediaSource) {
+        console.error('MediaSource API is not supported in this browser');
+        setIsMuted(false);
+        return;
+      }
       const answer = await fetch('/api/answer', {
         method: 'post',
         body: JSON.stringify({ userId })
       });
-      const reader = answer.body?.getReader();
-      const stream = new ReadableStream({
-        start(controller) {
-          return pump();
-          function pump() {
-            console.log('PUMP');
-            return reader?.read().then(({ done, value }): any => {
-              if (done) {
-                console.log('DONE');
-                controller.close();
-                return;
-              }
-              controller.enqueue(value);
-              return pump();
-            });
-          }
+      if (!answer.ok) {
+        setIsMuted(false);
+        throw new Error('Network response was not ok');
+      }
+      const mediaSource = new MediaSource();
+      const audio = audioRef.current;
+      if (audio) {
+        audio.src = URL.createObjectURL(mediaSource);
+        audio.play().catch(error => {
+          setIsMuted(false);
+          console.error('Error playing audio:', error);
+        });
+        audio.onended = () => {
+          setIsMuted(false);
+        };
+      }
+
+      mediaSource.addEventListener('sourceopen', () => {
+        const sourceBuffer = mediaSource.addSourceBuffer('audio/webm; codecs="opus"');
+
+        const reader = answer.body?.getReader();
+        if (reader) {
+          const pump = async () => {
+            const { done, value } = await reader.read();
+            if (done) {
+              mediaSource.endOfStream();
+              return;
+            }
+            if (value) {
+              sourceBuffer.appendBuffer(value);
+            }
+            sourceBuffer.addEventListener('updateend', pump, { once: true });
+          };
+          pump();
         }
       });
-      const responseStream = new Response(stream);
-      const blob = await responseStream.blob();
-      const audioUrl = URL.createObjectURL(blob);
 
-      const audio = new Audio(audioUrl);
-      audio.onended = () => {
-        setIsMuted(false);
-      };
-      audio.play();
     } catch (err) {
       console.log(err);
       setIsMuted(false);
@@ -184,6 +200,7 @@ export const SpeakButton = () => {
           <BsFillMicFill size={40} />
         </button>
       )}
+      <audio ref={audioRef} controls hidden={true} />
     </div>
   );
 }
