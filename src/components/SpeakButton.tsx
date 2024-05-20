@@ -40,6 +40,7 @@ export const SpeakButton = () => {
       });
     } catch (err) {
       console.log(err);
+      setIsMuted(false);
       return;
     }
     // retrieve response after 1s
@@ -54,8 +55,10 @@ export const SpeakButton = () => {
       
         const audio = new Audio(audioUrl);
         await audio.play();
+        setIsMuted(false);
       } catch (err) {
         console.log(err);
+        setIsMuted(false);
         return;
       }
     }, 1000)
